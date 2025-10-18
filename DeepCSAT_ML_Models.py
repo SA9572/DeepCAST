@@ -72,13 +72,23 @@ class DeepCSATMLPipeline:
         numerical_cols = self.df.select_dtypes(include=[np.number]).columns
         for col in numerical_cols:
             if self.df[col].isnull().sum() > 0:
-                self.df[col].fillna(self.df[col].median(), inplace=True)
+                median_val = self.df[col].median()
+                if pd.isna(median_val):
+                    median_val = 0  # If median is NaN, use 0
+                self.df[col].fillna(median_val, inplace=True)
         
         # Fill missing values in categorical columns with mode
         categorical_cols = self.df.select_dtypes(include=['object']).columns
         for col in categorical_cols:
             if self.df[col].isnull().sum() > 0:
-                self.df[col].fillna(self.df[col].mode()[0], inplace=True)
+                mode_val = self.df[col].mode()
+                if len(mode_val) > 0:
+                    self.df[col].fillna(mode_val[0], inplace=True)
+                else:
+                    self.df[col].fillna('Unknown', inplace=True)
+        
+        # Final check and fill any remaining NaN values
+        self.df = self.df.fillna(0)
         
         print(f"Missing values handled. Remaining missing values: {self.df.isnull().sum().sum()}")
     
@@ -147,16 +157,26 @@ class DeepCSATMLPipeline:
         X = self.df[feature_cols]
         y = self.df['CSAT Score']
         
+        # Ensure no NaN values
+        X = X.fillna(0)
+        y = y.fillna(y.median())
+        
         # Use mutual information for feature selection
-        selector = SelectKBest(score_func=mutual_info_regression, k=15)
-        X_selected = selector.fit_transform(X, y)
-        
-        # Get selected feature names
-        selected_features = X.columns[selector.get_support()].tolist()
-        print(f"Selected features: {selected_features}")
-        
-        # Update dataframe with selected features
-        self.df = self.df[selected_features + ['CSAT Score']]
+        try:
+            selector = SelectKBest(score_func=mutual_info_regression, k=min(15, len(feature_cols)))
+            X_selected = selector.fit_transform(X, y)
+            
+            # Get selected feature names
+            selected_features = X.columns[selector.get_support()].tolist()
+            print(f"Selected features: {selected_features}")
+            
+            # Update dataframe with selected features
+            self.df = self.df[selected_features + ['CSAT Score']]
+        except Exception as e:
+            print(f"Feature selection failed: {e}")
+            print("Using all features...")
+            # Keep all features if selection fails
+            pass
         
         print("Feature selection completed!")
     
