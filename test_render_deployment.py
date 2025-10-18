@@ -1,11 +1,14 @@
-# Test script for Render deployment
-import requests
+"""
+Test script for Render deployment
+"""
 import json
+import requests
+
 
 def test_render_deployment(base_url):
     """Test all endpoints of the deployed DeepCSAT API"""
     
-    print(f"🧪 Testing DeepCSAT API at: {base_url}")
+    print(f"Testing DeepCSAT API at: {base_url}")
     print("="*60)
     
     # Test 1: Home endpoint
@@ -13,12 +16,12 @@ def test_render_deployment(base_url):
     try:
         response = requests.get(f"{base_url}/")
         if response.status_code == 200:
-            print("✅ Home endpoint working")
+            print("Home endpoint working")
             print(f"   Response: {response.json()['message']}")
         else:
-            print(f"❌ Home endpoint failed: {response.status_code}")
-    except Exception as e:
-        print(f"❌ Home endpoint error: {e}")
+            print(f"Home endpoint failed: {response.status_code}")
+    except requests.RequestException as e:
+        print(f"Home endpoint error: {e}")
     
     print()
     
@@ -27,14 +30,14 @@ def test_render_deployment(base_url):
     try:
         response = requests.get(f"{base_url}/health")
         if response.status_code == 200:
-            print("✅ Health endpoint working")
+            print("Health endpoint working")
             health_data = response.json()
             print(f"   Status: {health_data['status']}")
             print(f"   Models loaded: {health_data['models_loaded']}")
         else:
-            print(f"❌ Health endpoint failed: {response.status_code}")
-    except Exception as e:
-        print(f"❌ Health endpoint error: {e}")
+            print(f"Health endpoint failed: {response.status_code}")
+    except requests.RequestException as e:
+        print(f"Health endpoint error: {e}")
     
     print()
     
@@ -43,13 +46,13 @@ def test_render_deployment(base_url):
     try:
         response = requests.get(f"{base_url}/models")
         if response.status_code == 200:
-            print("✅ Models endpoint working")
+            print("Models endpoint working")
             models_data = response.json()
             print(f"   Available models: {models_data['available_models']}")
         else:
-            print(f"❌ Models endpoint failed: {response.status_code}")
-    except Exception as e:
-        print(f"❌ Models endpoint error: {e}")
+            print(f"Models endpoint failed: {response.status_code}")
+    except requests.RequestException as e:
+        print(f"Models endpoint error: {e}")
     
     print()
     
@@ -66,16 +69,16 @@ def test_render_deployment(base_url):
         
         response = requests.post(f"{base_url}/predict", json=test_data)
         if response.status_code == 200:
-            print("✅ Prediction endpoint working")
+            print("Prediction endpoint working")
             prediction_data = response.json()
             print(f"   Predicted CSAT Score: {prediction_data['prediction']}")
             print(f"   Model used: {prediction_data['model_used']}")
             print(f"   Confidence: {prediction_data['confidence']}")
         else:
-            print(f"❌ Prediction endpoint failed: {response.status_code}")
+            print(f"Prediction endpoint failed: {response.status_code}")
             print(f"   Response: {response.text}")
-    except Exception as e:
-        print(f"❌ Prediction endpoint error: {e}")
+    except requests.RequestException as e:
+        print(f"Prediction endpoint error: {e}")
     
     print()
     
@@ -84,18 +87,19 @@ def test_render_deployment(base_url):
     try:
         response = requests.get(f"{base_url}/docs")
         if response.status_code == 200:
-            print("✅ Documentation endpoint working")
+            print("Documentation endpoint working")
             docs_data = response.json()
             print(f"   API Title: {docs_data['title']}")
             print(f"   Version: {docs_data['version']}")
         else:
-            print(f"❌ Documentation endpoint failed: {response.status_code}")
-    except Exception as e:
-        print(f"❌ Documentation endpoint error: {e}")
+            print(f"Documentation endpoint failed: {response.status_code}")
+    except requests.RequestException as e:
+        print(f"Documentation endpoint error: {e}")
     
     print()
     print("="*60)
-    print("🎉 Testing completed!")
+    print("Testing completed!")
+
 
 def test_batch_predictions(base_url):
     """Test batch prediction endpoint"""
@@ -109,7 +113,7 @@ def test_batch_predictions(base_url):
                     "category": "Product Queries"
                 },
                 {
-                    "id": "2", 
+                    "id": "2",
                     "channel_name": "Email",
                     "category": "Returns"
                 }
@@ -118,15 +122,16 @@ def test_batch_predictions(base_url):
         
         response = requests.post(f"{base_url}/predict/batch", json=batch_data)
         if response.status_code == 200:
-            print("✅ Batch prediction endpoint working")
+            print("Batch prediction endpoint working")
             batch_result = response.json()
             print(f"   Predictions count: {batch_result['count']}")
             for i, pred in enumerate(batch_result['predictions']):
                 print(f"   Record {i+1}: CSAT Score = {pred['prediction']}")
         else:
-            print(f"❌ Batch prediction failed: {response.status_code}")
-    except Exception as e:
-        print(f"❌ Batch prediction error: {e}")
+            print(f"Batch prediction failed: {response.status_code}")
+    except requests.RequestException as e:
+        print(f"Batch prediction error: {e}")
+
 
 if __name__ == "__main__":
     # Replace with your actual Render URL
@@ -144,7 +149,7 @@ if __name__ == "__main__":
     # Test batch predictions
     test_batch_predictions(RENDER_URL)
     
-    print("\n📝 Instructions:")
+    print("\nInstructions:")
     print("1. Replace 'your-app-name' in the RENDER_URL with your actual app name")
     print("2. Make sure your app is deployed and running on Render")
     print("3. Run this script: python test_render_deployment.py")

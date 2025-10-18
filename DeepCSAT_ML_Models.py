@@ -154,24 +154,42 @@ class DeepCSATMLPipeline:
         
         # Prepare features and target
         feature_cols = [col for col in self.df.columns if col != 'CSAT Score']
-        X = self.df[feature_cols]
-        y = self.df['CSAT Score']
+        X = self.df[feature_cols].copy()
+        y = self.df['CSAT Score'].copy()
+        
+        # Convert all columns to numeric, handling categorical data
+        for col in X.columns:
+            if X[col].dtype == 'object':
+                # Convert categorical to numeric
+                X[col] = pd.Categorical(X[col]).codes
+            elif X[col].dtype.name == 'category':
+                # Convert category to numeric
+                X[col] = X[col].cat.codes
         
         # Ensure no NaN values
         X = X.fillna(0)
         y = y.fillna(y.median())
         
+        # Remove any infinite values
+        X = X.replace([np.inf, -np.inf], 0)
+        
         # Use mutual information for feature selection
         try:
-            selector = SelectKBest(score_func=mutual_info_regression, k=min(15, len(feature_cols)))
-            X_selected = selector.fit_transform(X, y)
-            
-            # Get selected feature names
-            selected_features = X.columns[selector.get_support()].tolist()
-            print(f"Selected features: {selected_features}")
-            
-            # Update dataframe with selected features
-            self.df = self.df[selected_features + ['CSAT Score']]
+            # Ensure we have enough features
+            n_features = min(10, len(feature_cols), X.shape[1])
+            if n_features > 0:
+                selector = SelectKBest(score_func=mutual_info_regression, k=n_features)
+                X_selected = selector.fit_transform(X, y)
+                
+                # Get selected feature names
+                selected_features = X.columns[selector.get_support()].tolist()
+                print(f"Selected features: {selected_features}")
+                
+                # Update dataframe with selected features
+                if selected_features:
+                    self.df = self.df[selected_features + ['CSAT Score']]
+            else:
+                print("Not enough features for selection, using all features")
         except Exception as e:
             print(f"Feature selection failed: {e}")
             print("Using all features...")
@@ -186,13 +204,37 @@ class DeepCSATMLPipeline:
         
         # Prepare features and target
         feature_cols = [col for col in self.df.columns if col != 'CSAT Score']
-        X = self.df[feature_cols]
-        y = self.df['CSAT Score']
+        X = self.df[feature_cols].copy()
+        y = self.df['CSAT Score'].copy()
+        
+        # Ensure all data is numeric and clean
+        for col in X.columns:
+            if X[col].dtype == 'object':
+                X[col] = pd.Categorical(X[col]).codes
+            elif X[col].dtype.name == 'category':
+                X[col] = X[col].cat.codes
+        
+        # Fill any remaining NaN values
+        X = X.fillna(0)
+        y = y.fillna(y.median())
+        
+        # Remove infinite values
+        X = X.replace([np.inf, -np.inf], 0)
+        
+        # Ensure y is integer for stratification
+        y = y.astype(int)
         
         # Split the data
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42, stratify=y
-        )
+        try:
+            self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
+                X, y, test_size=0.2, random_state=42, stratify=y
+            )
+        except ValueError:
+            # If stratification fails, split without it
+            print("Stratification failed, splitting without stratification...")
+            self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
+                X, y, test_size=0.2, random_state=42
+            )
         
         # Scale the features
         self.X_train_scaled = self.scaler.fit_transform(self.X_train)
